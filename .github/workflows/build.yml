@@ -191,6 +191,20 @@ jobs:
     # run on a larger runner for more SSD/resource access
     runs-on: ubuntu-22.04-4core-spin
     if: ${{ github.repository_owner == 'spinframework' }}
+    services:
+      postgres:
+        image: postgres:latest
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_USER: postgres
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     steps:
       - uses: actions/checkout@v3
 
@@ -217,6 +231,8 @@ jobs:
 
       - name: Run Full Integration Tests
         run: make test-integration-full
+        env:
+          DB_URL: postgres://postgres:postgres@localhost:5432/postgres
 
   # This runs the same steps as the release build except for signing
   ensure-release-builds:
