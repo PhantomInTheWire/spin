@@ -10,8 +10,8 @@ mod runtime_tests {
         ignore: [
             // This test is flaky. Often gets "Connection reset by peer" errors.
             // https://github.com/spinframework/spin/issues/2265
-            "outbound-postgres",
-            "outbound-postgres-variable-permission"
+            // "outbound-postgres",
+            // "outbound-postgres-variable-permission"
         ]
     );
 
@@ -28,7 +28,7 @@ mod runtime_tests {
 
     #[test]
     fn conformance_tests() -> anyhow::Result<()> {
-        let config = conformance_tests::Config::new("canary").ignore("outbound-mqtt");
+        let config = conformance_tests::Config::new("canary");
         let conclusion = conformance_tests::run_tests(config, move |test| {
             conformance::run_test(test, &spin_binary())
         })?;
