@@ -72,7 +72,7 @@ test-integration: test-runtime
 # Run all of the integration tests including those that use some sort of assumed external dependency (e.g., Docker, a language toolchain, etc.)
 .PHONY: test-integration-full
 test-integration-full: test-runtime-full
-	cargo test --release integration_tests --no-default-features --features extern-dependencies-tests --no-fail-fast -- --nocapture
+	cargo test --release integration_tests --no-default-features --no-fail-fast -- --nocapture
 
 # simple convenience for developing with TLS
 .PHONY: tls
