@@ -13,8 +13,12 @@ on:
 
 jobs:
   test:
-    name: Run Runtime Tests
+    name: Run Runtime Tests - Attempt ${{ matrix.repeat }}
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        repeat: [1, 2, 3, 4, 5]  # Run the same job 5 times
+
     services:
       postgres:
         image: postgres:15
