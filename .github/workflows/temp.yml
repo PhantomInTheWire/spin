@@ -1,5 +1,5 @@
 # both postgres and mqtt tests are run in runtime_tests
-name: Run All Runtime Tests
+name: Run All integration Tests
 
 on:
   push:
@@ -13,11 +13,11 @@ on:
 
 jobs:
   test:
-    name: Run Runtime Tests - Attempt ${{ matrix.repeat }}
+    name: Run integration Tests - Attempt ${{ matrix.repeat }}
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        repeat: [1, 2, 3, 4, 5]  # Run the same job 5 times
+        repeat: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]  # Run the same job 5 times
 
     services:
       postgres:
@@ -63,5 +63,5 @@ jobs:
           mv grain-linux-x64 grain
           echo "$PWD" >> $GITHUB_PATH
 
-      - name: Run Full Runtime Tests
-        run: cargo test --release runtime_tests --no-default-features --features extern-dependencies-tests --no-fail-fast -- --nocapture
+      - name: Run Full integration Tests
+        run: make test-integration-full
