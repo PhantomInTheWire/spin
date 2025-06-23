@@ -1,0 +1,114 @@
+# both postgres and mqtt tests are run in runtime_tests
+name: Run All integration Tests
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+    branches:
+      - main
+      - master
+
+jobs:
+  test:
+    name: Run integration Tests - Attempt ${{ matrix.repeat }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        repeat: [1]  # Run the same job 1 time
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: spin_dev
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v3
+
+      # 1. Set up MQTT broker with authentication
+      - name: Set up MQTT broker with auth
+        run: |
+          # Create directories for config and data
+          mkdir -p mosquitto/config mosquitto/data
+
+          # Write mosquitto.conf with authentication enabled
+          cat <<EOF > mosquitto/config/mosquitto.conf
+          listener 1883
+          allow_anonymous false
+          password_file /mosquitto/config/passwordfile
+          persistence true
+          persistence_location /mosquitto/data/
+          EOF
+
+          # Install mosquitto tools to generate password file
+          sudo apt-get update
+          sudo apt-get install -y mosquitto mosquitto-clients
+
+          # Create the password file
+          mosquitto_passwd -b -c mosquitto/config/passwordfile username password
+
+          # Run the MQTT broker in Docker with proper volume mounts
+          docker run -d --name mqtt-test \
+            -v ${{ github.workspace }}/mosquitto/config:/mosquitto/config \
+            -v ${{ github.workspace }}/mosquitto/data:/mosquitto/data \
+            -p 1883:1883 \
+            eclipse-mosquitto:2.0
+
+      # 2. Wait for MQTT service and verify connectivity
+      - name: Wait for MQTT service
+        run: |
+          # Wait for MQTT broker to be ready
+          timeout 30 bash -c 'until mosquitto_pub -h localhost -p 1883 -u username -P password -t healthcheck -m "ready"; do sleep 1; done'
+          echo "MQTT broker is ready"
+
+      # 3. Install other toolchains (as per your needs)
+      - name: Install Rust wasm target
+        run: rustup target add wasm32-wasip1 wasm32-unknown-unknown
+
+      - name: Setup Zig
+        uses: goto-bus-stop/setup-zig@v2
+
+      - name: Setup Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.23'
+          cache-dependency-path: "**/go.sum"
+
+      - name: Setup TinyGo
+        uses: acifani/setup-tinygo@v2
+        with:
+          tinygo-version: '0.37.0'
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '22.x'
+
+      - name: Install Grain
+        run: |
+          wget https://github.com/grain-lang/grain/releases/download/grain-v0.6.6/grain-linux-x64
+          chmod +x grain-linux-x64
+          mv grain-linux-x64 grain
+          echo "$PWD" >> $GITHUB_PATH
+
+      # 4. Run your integration tests
+      - name: Run Full integration Tests
+        run: make test-integration-full
+
+      # 5. Cleanup MQTT container
+      - name: Cleanup MQTT container
+        if: always()
+        run: docker rm -f mqtt-test

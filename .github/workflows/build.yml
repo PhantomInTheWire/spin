@@ -25,9 +25,9 @@ jobs:
     runs-on: "ubuntu-22.04"
     if: ${{ github.event_name == 'pull_request' }}
     steps:
-      - name: 'Checkout Repository'
+      - name: "Checkout Repository"
         uses: actions/checkout@v4
-      - name: 'Dependency Review'
+      - name: "Dependency Review"
         uses: actions/dependency-review-action@v4
 
   lint-rust:
@@ -83,14 +83,8 @@ jobs:
     strategy:
       matrix:
         config:
-          - {
-              arch: "aarch64",
-              target: "aarch64-unknown-linux-musl"
-            }
-          - {
-              arch: "amd64",
-              target: "x86_64-unknown-linux-musl"
-            }
+          - { arch: "aarch64", target: "aarch64-unknown-linux-musl" }
+          - { arch: "amd64", target: "x86_64-unknown-linux-musl" }
     steps:
       - uses: actions/checkout@v3
 
@@ -141,7 +135,6 @@ jobs:
           name: spin-${{ matrix.os }}
           path: target/release/spin${{ matrix.os == 'windows-latest' && '.exe' || '' }}
 
-
   test-spin:
     name: Test Spin
     runs-on: ${{ matrix.runner }}
@@ -191,6 +184,32 @@ jobs:
     # run on a larger runner for more SSD/resource access
     runs-on: ubuntu-22.04-4core-spin
     if: ${{ github.repository_owner == 'spinframework' }}
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: spin_dev
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      mqtt:
+        image: eclipse-mosquitto:2
+        env:
+          MQTT_USERNAME: username
+          MQTT_PASSWORD: password
+        ports:
+          - 1883:1883
+        options: >-
+          --health-cmd "timeout -t 5 mosquitto_sub -t test/topic -v -E"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     steps:
       - uses: actions/checkout@v3
 
@@ -200,14 +219,14 @@ jobs:
       - uses: goto-bus-stop/setup-zig@v2
       - uses: actions/setup-go@v4
         with:
-          go-version: '1.23'
-          cache-dependency-path: "**/go.sum"  # To suppress warning: https://github.com/actions/setup-go/issues/427
+          go-version: "1.23"
+          cache-dependency-path: "**/go.sum" # To suppress warning: https://github.com/actions/setup-go/issues/427
       - uses: acifani/setup-tinygo@v2
         with:
-          tinygo-version: '0.37.0'
+          tinygo-version: "0.37.0"
       - uses: actions/setup-node@v3
         with:
-          node-version: '22.x'
+          node-version: "22.x"
       - name: Install Grain
         run: |
           wget https://github.com/grain-lang/grain/releases/download/grain-v0.6.6/grain-linux-x64
